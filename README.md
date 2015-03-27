@@ -5,6 +5,7 @@
 - accepts json messages only for loggly, log api for trace
 - output: LOG-LEVEL: yyyy/MM/dd hh:mm:ss message
 - Trace/Info/Warn/Error/Emergency API
+- automatically include file, line number and function name in logs
 
 ## usage
 

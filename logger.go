@@ -2,10 +2,14 @@ package logler
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/streamrail/go-loggly"
 	"log"
 	"math/rand"
 	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 )
 
@@ -57,56 +61,87 @@ func New(opts *Options) *Client {
 }
 
 func (c *Client) Info(msg map[string]interface{}) {
-	j, _ := json.Marshal(msg)
-	c.info.Println(string(j))
+	if msg, err := getMessage(msg); err != nil {
+		log.Println(err.Error())
+	} else {
+		j, _ := json.Marshal(msg)
+		c.info.Println(string(j))
 
-	if c.logglyClient != nil {
-		if c.logglySampleRate == 100 {
-			c.logglyClient.Info(c.component, msg)
-		} else {
-			if random(1, 100) <= c.logglySampleRate {
+		if c.logglyClient != nil {
+			if c.logglySampleRate == 100 {
 				c.logglyClient.Info(c.component, msg)
+			} else {
+				if random(1, 100) <= c.logglySampleRate {
+					c.logglyClient.Info(c.component, msg)
+				}
 			}
 		}
 	}
 }
 
 func (c *Client) Warn(msg map[string]interface{}) {
-	j, _ := json.Marshal(msg)
-	c.warn.Println(string(j))
+	if msg, err := getMessage(msg); err != nil {
+		log.Println(err.Error())
+	} else {
+		j, _ := json.Marshal(msg)
+		c.warn.Println(string(j))
 
-	if c.logglyClient != nil {
-		if c.logglySampleRate == 100 {
-			c.logglyClient.Warn(c.component, msg)
-		} else {
-			if random(1, 100) <= c.logglySampleRate {
+		if c.logglyClient != nil {
+			if c.logglySampleRate == 100 {
 				c.logglyClient.Warn(c.component, msg)
+			} else {
+				if random(1, 100) <= c.logglySampleRate {
+					c.logglyClient.Warn(c.component, msg)
+				}
 			}
 		}
 	}
 }
 
 func (c *Client) Error(msg map[string]interface{}) {
-	j, _ := json.Marshal(msg)
-	c.error.Println(string(j))
+	if msg, err := getMessage(msg); err != nil {
+		log.Println(err.Error())
+	} else {
+		j, _ := json.Marshal(msg)
+		c.error.Println(string(j))
 
-	if c.logglyClient != nil {
-		if c.logglySampleRate == 100 {
-			c.logglyClient.Error(c.component, msg)
-		} else {
-			if random(1, 100) <= c.logglySampleRate {
+		if c.logglyClient != nil {
+			if c.logglySampleRate == 100 {
 				c.logglyClient.Error(c.component, msg)
+			} else {
+				if random(1, 100) <= c.logglySampleRate {
+					c.logglyClient.Error(c.component, msg)
+				}
 			}
 		}
 	}
 }
 
 func (c *Client) Emergency(msg map[string]interface{}) {
-	j, _ := json.Marshal(msg)
-	c.emergency.Println(string(j))
-	if c.logglyClient != nil {
-		c.logglyClient.Emergency(c.component, msg)
+	if msg, err := getMessage(msg); err != nil {
+		log.Println(err.Error())
+	} else {
+		j, _ := json.Marshal(msg)
+		c.emergency.Println(string(j))
+		if c.logglyClient != nil {
+			c.logglyClient.Emergency(c.component, msg)
+		}
 	}
+}
+
+func getMessage(msg map[string]interface{}) (map[string]interface{}, error) {
+	if msg != nil {
+		pc := make([]uintptr, 10)
+		runtime.Callers(2, pc)
+		f := runtime.FuncForPC(pc[1])
+		file, line := f.FileLine(pc[1])
+		tmp := strings.Split(file, string(filepath.Separator))
+		msg["filename"] = tmp[len(tmp)-1]
+		msg["line"] = line
+		msg["func"] = f.Name()
+		return msg, nil
+	}
+	return nil, errors.New("message log nil message")
 }
 
 func random(min, max int) int {
