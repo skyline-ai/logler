@@ -1,19 +1,23 @@
 # logler
 
-- logs to both stdout/stderror and to loggly.com
-- accepts json messages only (map)
+- logs to both stdout/stderror and to [loggly](http://www.loggly.com)
+- sample rate for loggly (write only x% of requests to save money), except for emergency log level
+- accepts json messages only for loggly, log api for trace
 - output: LOG-LEVEL: yyyy/MM/dd hh:mm:ss message
-- Info/Warn/Error API
+- Trace/Info/Warn/Error/Emergency API
 
 ## usage
 
 ```go
+type JSON map[string]interface{}
 func main() {
-	l := logler.New(&logler.Options{
-		LogglyToken: "epr3test3pe-1234-test-23e-3test3e",
+	logger = logler.New(&logler.Options{
+		LogglyToken: "311-234324-2323-234324-2323423",
+		Component:   "my-cool-server",
+		LogglySampleRate: 25 // (1-100), write only 25% of logs to loggly
 	})
 
-	l.Warn(&logler.Message{"category": "test", "action": "foo", "label": "bar"})
+	logger.Warn(JSON{"category": "test", "action": "foo", "label": "bar"})
 }
 
 ```
