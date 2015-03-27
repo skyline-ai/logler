@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-type Logler struct {
+type Client struct {
 	info   *log.Logger
 	warn   *log.Logger
 	error  *log.Logger
@@ -20,8 +20,8 @@ type Options struct {
 
 type Message loggly.Message
 
-func New(opts *Options) *Logler {
-	result := &Logler{
+func New(opts *Options) *Client {
+	result := &Client{
 		info: log.New(os.Stdout,
 			"INFO: ",
 			log.Ldate|log.Ltime),
@@ -40,15 +40,15 @@ func New(opts *Options) *Logler {
 	return result
 }
 
-func (l *Logler) Info(msg *Message) {
+func (l *Client) Info(msg *Message) {
 	j, _ := json.Marshal(msg)
 	l.info.Println(string(j))
 }
-func (l *Logler) Warn(msg *Message) {
+func (l *Client) Warn(msg *Message) {
 	j, _ := json.Marshal(msg)
 	l.warn.Println(string(j))
 }
-func (l *Logler) Error(msg *Message) {
+func (l *Client) Error(msg *Message) {
 	j, _ := json.Marshal(msg)
 	l.error.Println(string(j))
 }
