@@ -8,47 +8,61 @@ import (
 )
 
 type Client struct {
-	info   *log.Logger
-	warn   *log.Logger
-	error  *log.Logger
-	loggly *loggly.Client
+	Trace        *log.Logger
+	info         *log.Logger
+	warn         *log.Logger
+	error        *log.Logger
+	emergency    *log.Logger
+	component    string
+	logglyClient *loggly.Client
 }
 
 type Options struct {
 	LogglyToken string
+	Component   string
 }
-
-type Message loggly.Message
 
 func New(opts *Options) *Client {
 	result := &Client{
 		info: log.New(os.Stdout,
 			"INFO: ",
 			log.Ldate|log.Ltime),
-
 		warn: log.New(os.Stdout,
 			"WARNING: ",
 			log.Ldate|log.Ltime),
-
 		error: log.New(os.Stderr,
 			"ERROR: ",
 			log.Ldate|log.Ltime),
+		emergency: log.New(os.Stderr,
+			"Emergency: ",
+			log.Ldate|log.Ltime),
+		Trace: log.New(os.Stdout,
+			"TRACE: ",
+			log.Ldate|log.Ltime),
 	}
 	if opts != nil {
-		result.loggly = loggly.New(opts.LogglyToken)
+		result.logglyClient = loggly.New(opts.LogglyToken)
 	}
 	return result
 }
 
-func (l *Client) Info(msg *Message) {
+func (c *Client) Info(msg map[string]interface{}) {
 	j, _ := json.Marshal(msg)
-	l.info.Println(string(j))
+	c.info.Println(string(j))
+	c.logglyClient.Info(c.component, msg)
 }
-func (l *Client) Warn(msg *Message) {
+func (c *Client) Warn(msg map[string]interface{}) {
 	j, _ := json.Marshal(msg)
-	l.warn.Println(string(j))
+	c.warn.Println(string(j))
+	c.logglyClient.Warn(c.component, msg)
 }
-func (l *Client) Error(msg *Message) {
+func (c *Client) Error(msg map[string]interface{}) {
 	j, _ := json.Marshal(msg)
-	l.error.Println(string(j))
+	c.error.Println(string(j))
+	c.logglyClient.Error(c.component, msg)
+}
+func (c *Client) Emergency(msg map[string]interface{}) {
+	j, _ := json.Marshal(msg)
+	c.emergency.Println(string(j))
+	c.logglyClient.Emergency(c.component, msg)
 }
