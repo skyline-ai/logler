@@ -28,6 +28,7 @@ type Options struct {
 	LogglyToken      string
 	Component        string
 	LogglySampleRate int
+	LogglyBufferSize int
 }
 
 func New(opts *Options) *Client {
@@ -50,7 +51,11 @@ func New(opts *Options) *Client {
 	}
 	if opts != nil {
 		if len(opts.LogglyToken) > 0 && opts.LogglySampleRate > 0 {
-			result.logglyClient = loggly.New(opts.LogglyToken)
+			bufferSize := 100
+			if opts.LogglyBufferSize > 0 {
+				bufferSize = opts.LogglyBufferSize
+			}
+			result.logglyClient = loggly.New(opts.LogglyToken, bufferSize)
 			result.logglySampleRate = opts.LogglySampleRate
 		}
 		if len(opts.Component) > 0 {
