@@ -3,8 +3,8 @@ package logler
 import (
 	"encoding/json"
 	"errors"
-	"github.com/streamrail/go-loggly"
 	"log"
+	"log/syslog"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -21,14 +21,13 @@ type Client struct {
 	emergency        *log.Logger
 	component        string
 	logglySampleRate int
-	logglyClient     *loggly.Client
+	syslogClient     *syslog.Writer
+	MinLog           bool
 }
 
 type Options struct {
-	LogglyToken      string
 	Component        string
 	LogglySampleRate int
-	LogglyBufferSize int
 	MinimalLog       bool
 }
 
@@ -51,18 +50,14 @@ func New(opts *Options) *Client {
 			log.Ldate|log.Ltime),
 	}
 	if opts != nil {
-		if len(opts.LogglyToken) > 0 && opts.LogglySampleRate > 0 {
-			bufferSize := 100
-			if opts.LogglyBufferSize > 0 {
-				bufferSize = opts.LogglyBufferSize
-			}
-			minLog := false
-			if opts.MinimalLog {
-				minLog = true
-			}
-			result.logglyClient = loggly.New(opts.LogglyToken, bufferSize, minLog)
-			result.logglySampleRate = opts.LogglySampleRate
+		//Connect to local syslog server (the syslog server should be configured to send to logstash)
+		syslogclient, err := syslog.New(syslog.LOG_ERR, opts.Component)
+		if err != nil {
+			log.Println(err.Error)
 		}
+		result.syslogClient = syslogclient
+		result.MinLog = opts.MinimalLog
+		result.logglySampleRate = opts.LogglySampleRate
 		if len(opts.Component) > 0 {
 			result.component = opts.Component
 		}
@@ -71,18 +66,22 @@ func New(opts *Options) *Client {
 }
 
 func (c *Client) Info(msg map[string]interface{}) {
-	if msg, err := getMessage(msg); err != nil {
+	if msg, err := c.getMessage(msg); err != nil {
 		log.Println(err.Error())
 	} else {
 		j, _ := json.Marshal(msg)
-		c.info.Println(string(j))
+		message := string(j)
+		c.info.Println(message)
+		c.info.Println(message)
 
-		if c.logglyClient != nil {
+		if c.syslogClient != nil {
 			if c.logglySampleRate == 100 {
-				c.logglyClient.Info(c.component, msg)
+				c.syslogClient.Info(message)
+				c.syslogClient.Info(message)
 			} else {
 				if random(1, 100) <= c.logglySampleRate {
-					c.logglyClient.Info(c.component, msg)
+					c.syslogClient.Info(message)
+					c.syslogClient.Info(message)
 				}
 			}
 		}
@@ -90,18 +89,19 @@ func (c *Client) Info(msg map[string]interface{}) {
 }
 
 func (c *Client) Warn(msg map[string]interface{}) {
-	if msg, err := getMessage(msg); err != nil {
+	if msg, err := c.getMessage(msg); err != nil {
 		log.Println(err.Error())
 	} else {
 		j, _ := json.Marshal(msg)
-		c.warn.Println(string(j))
+		message := string(j)
+		c.warn.Println(message)
 
-		if c.logglyClient != nil {
+		if c.syslogClient != nil {
 			if c.logglySampleRate == 100 {
-				c.logglyClient.Warn(c.component, msg)
+				c.syslogClient.Warning(message)
 			} else {
 				if random(1, 100) <= c.logglySampleRate {
-					c.logglyClient.Warn(c.component, msg)
+					c.syslogClient.Warning(message)
 				}
 			}
 		}
@@ -109,18 +109,18 @@ func (c *Client) Warn(msg map[string]interface{}) {
 }
 
 func (c *Client) Error(msg map[string]interface{}) {
-	if msg, err := getMessage(msg); err != nil {
+	if msg, err := c.getMessage(msg); err != nil {
 		log.Println(err.Error())
 	} else {
 		j, _ := json.Marshal(msg)
-		c.error.Println(string(j))
-
-		if c.logglyClient != nil {
+		message := string(j)
+		c.error.Println(message)
+		if c.syslogClient != nil {
 			if c.logglySampleRate == 100 {
-				c.logglyClient.Error(c.component, msg)
+				c.syslogClient.Err(message)
 			} else {
 				if random(1, 100) <= c.logglySampleRate {
-					c.logglyClient.Error(c.component, msg)
+					c.syslogClient.Err(message)
 				}
 			}
 		}
@@ -128,19 +128,19 @@ func (c *Client) Error(msg map[string]interface{}) {
 }
 
 func (c *Client) Emergency(msg map[string]interface{}) {
-	if msg, err := getMessage(msg); err != nil {
+	if msg, err := c.getMessage(msg); err != nil {
 		log.Println(err.Error())
 	} else {
 		j, _ := json.Marshal(msg)
 		c.emergency.Println(string(j))
-		if c.logglyClient != nil {
-			c.logglyClient.Emergency(c.component, msg)
+		if c.syslogClient != nil {
+			c.syslogClient.Emerg(string(j))
 		}
 	}
 }
 
-func getMessage(msg map[string]interface{}) (map[string]interface{}, error) {
-	if msg != nil {
+func (c *Client) getMessage(msg map[string]interface{}) (map[string]interface{}, error) {
+	if msg != nil && !c.MinLog {
 		pc := make([]uintptr, 10)
 		runtime.Callers(2, pc)
 		f := runtime.FuncForPC(pc[1])
@@ -149,6 +149,8 @@ func getMessage(msg map[string]interface{}) (map[string]interface{}, error) {
 		msg["filename"] = tmp[len(tmp)-1]
 		msg["line"] = line
 		msg["func"] = f.Name()
+		return msg, nil
+	} else if msg != nil {
 		return msg, nil
 	}
 	return nil, errors.New("message log nil message")
