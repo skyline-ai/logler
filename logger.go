@@ -31,6 +31,17 @@ type Options struct {
 	MinimalLog       bool
 }
 
+type BQSchema struct {
+	Bq         bool   `json:"bq"`
+	Component  string `json:"component"`
+	Appversion string `json:"appversion"`
+	Category   string `json:"category"`
+	Label      string `json:"label"`
+	Action     string `json:"action"`
+	ClientIP   string `json:"clientip"`
+	Ua         string `json:"ua"`
+}
+
 func New(opts *Options) *Client {
 	result := &Client{
 		info: log.New(os.Stdout,
@@ -65,6 +76,22 @@ func New(opts *Options) *Client {
 	return result
 }
 
+//Sends data to google bigquery (only if json has bq=true)
+// The data to bigquery should have the BQScheme struct
+func (c *Client) BQ(bqs BQSchema) error {
+	bqs.Bq = true
+	var msg []byte
+	var err error
+	if msg, err = json.Marshal(bqs); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	message := string(msg)
+	c.info.Println(message)
+	c.syslogClient.Info(message)
+	return nil
+}
+
 func (c *Client) Info(msg map[string]interface{}) {
 	if msg, err := c.getMessage(msg); err != nil {
 		log.Println(err.Error())
@@ -72,15 +99,12 @@ func (c *Client) Info(msg map[string]interface{}) {
 		j, _ := json.Marshal(msg)
 		message := string(j)
 		c.info.Println(message)
-		c.info.Println(message)
 
 		if c.syslogClient != nil {
 			if c.logglySampleRate == 100 {
 				c.syslogClient.Info(message)
-				c.syslogClient.Info(message)
 			} else {
 				if random(1, 100) <= c.logglySampleRate {
-					c.syslogClient.Info(message)
 					c.syslogClient.Info(message)
 				}
 			}
