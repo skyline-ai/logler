@@ -34,12 +34,13 @@ type Options struct {
 type BQSchema struct {
 	Bq         bool   `json:"bq"`
 	Component  string `json:"component"`
-	Appversion string `json:"appversion"`
+	AppVersion string `json:"appversion"`
 	Category   string `json:"category"`
 	Label      string `json:"label"`
 	Action     string `json:"action"`
 	ClientIP   string `json:"clientip"`
 	Ua         string `json:"ua"`
+	GeoIP      string `json:"geoip"`
 }
 
 func New(opts *Options) *Client {
