@@ -37,6 +37,16 @@ type BQSchema struct {
 	AppVersion string `json:"appversion"`
 	Category   string `json:"category"`
 	Label      string `json:"label"`
+	Label1     string `json:"label1"`
+	Label2     string `json:"label2"`
+	Label3     string `json:"label3"`
+	Label4     string `json:"label4"`
+	Label5     string `json:"label5"`
+	Label6     string `json:"label6"`
+	Label7     string `json:"label7"`
+	Label8     string `json:"label8"`
+	Label9     string `json:"label9"`
+	Label10    string `json:"label10"`
 	Action     string `json:"action"`
 	ClientIP   string `json:"clientip"`
 	Ua         string `json:"ua"`
