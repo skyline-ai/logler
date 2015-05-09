@@ -32,7 +32,7 @@ type Options struct {
 }
 
 type BQSchema struct {
-	Bq         bool   `json:"bq"`
+	Bq         string `json:"bq"`
 	Component  string `json:"component"`
 	AppVersion string `json:"appversion"`
 	Category   string `json:"category"`
@@ -89,8 +89,7 @@ func New(opts *Options) *Client {
 
 //Sends data to google bigquery (only if json has bq=true)
 // The data to bigquery should have the BQScheme struct
-func (c *Client) BQ(bqs BQSchema) error {
-	bqs.Bq = true
+func (c *Client) BQ(bqs map[string]string) error {
 	var msg []byte
 	var err error
 	if msg, err = json.Marshal(bqs); err != nil {
