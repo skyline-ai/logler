@@ -3,6 +3,7 @@ package logler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"log/syslog"
 	"math/rand"
@@ -11,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"google.golang.org/api/bigquery/v2"
 )
 
 type Client struct {
@@ -31,27 +34,30 @@ type Options struct {
 	MinimalLog       bool
 }
 
-type BQSchema struct {
-	Bq         string `json:"bq"`
-	Component  string `json:"component"`
-	AppVersion string `json:"appversion"`
-	Category   string `json:"category"`
-	Label      string `json:"label"`
-	Label1     string `json:"label1"`
-	Label2     string `json:"label2"`
-	Label3     string `json:"label3"`
-	Label4     string `json:"label4"`
-	Label5     string `json:"label5"`
-	Label6     string `json:"label6"`
-	Label7     string `json:"label7"`
-	Label8     string `json:"label8"`
-	Label9     string `json:"label9"`
-	Label10    string `json:"label10"`
-	Action     string `json:"action"`
-	ClientIP   string `json:"clientip"`
-	Ua         string `json:"ua"`
-	GeoIP      string `json:"geoip"`
-}
+var (
+	bqSchemaMap = map[string]bool{
+		"bq":         true,
+		"component":  true,
+		"appversion": true,
+		"timestamp":  true,
+		"category":   true,
+		"label":      true,
+		"label1":     true,
+		"label2":     true,
+		"label3":     true,
+		"label4":     true,
+		"label5":     true,
+		"label6":     true,
+		"label7":     true,
+		"label8":     true,
+		"label9":     true,
+		"label10":    true,
+		"action":     true,
+		"clientip":   true,
+		"ua":         true,
+		"geoip":      true,
+	}
+)
 
 func New(opts *Options) *Client {
 	result := &Client{
@@ -84,21 +90,27 @@ func New(opts *Options) *Client {
 			result.component = opts.Component
 		}
 	}
+	initBQ()
+
 	return result
 }
 
-//Sends data to google bigquery (only if json has bq=true)
-// The data to bigquery should have the BQScheme struct
-func (c *Client) BQ(bqs map[string]string) error {
-	var msg []byte
-	var err error
-	if msg, err = json.Marshal(bqs); err != nil {
-		log.Println(err.Error())
-		return err
+//Sends data to google bigquery (if fits bqSchemaMap)
+func (c *Client) BQ(bqs map[string]interface{}) error {
+	bqmap := make(map[string]bigquery.JsonValue)
+	for key, value := range bqs {
+		if _, ok := bqSchemaMap[key]; ok {
+			bqmap[key] = fmt.Sprintf("%v", value)
+		}
 	}
-	message := string(msg)
-	c.info.Println(message)
-	c.syslogClient.Info(message)
+	bqmap["timestamp"] = time.Now().UTC()
+	sendBQ(bqmap)
+	if message, err := json.Marshal(bqs); err != nil {
+		errmsg := fmt.Sprintf("Could not marshal %v\n", bqs)
+		return errors.New(errmsg)
+	} else {
+		c.info.Println(string(message))
+	}
 	return nil
 }
 
