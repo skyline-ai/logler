@@ -34,6 +34,7 @@ type Options struct {
 type BQSchema struct {
 	Bq         string `json:"bq"`
 	Component  string `json:"component"`
+	Sid        string `json:"sid"`
 	AppVersion string `json:"appversion"`
 	Category   string `json:"category"`
 	Label      string `json:"label"`
