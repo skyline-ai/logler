@@ -3,7 +3,6 @@ package logler
 import (
 	"encoding/json"
 	"errors"
-	"github.com/streamrail/go-loggly"
 	"log"
 	"math/rand"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/streamrail/go-loggly"
 )
 
 type Client struct {
@@ -74,7 +75,7 @@ func (c *Client) Info(msg map[string]interface{}) {
 	if msg, err := getMessage(msg); err != nil {
 		log.Println(err.Error())
 	} else {
-		j, _ := json.Marshal(msg)
+		j, _ := json.MarshalIndent(msg, "", "\t")
 		c.info.Println(string(j))
 
 		if c.logglyClient != nil {
@@ -93,7 +94,7 @@ func (c *Client) Warn(msg map[string]interface{}) {
 	if msg, err := getMessage(msg); err != nil {
 		log.Println(err.Error())
 	} else {
-		j, _ := json.Marshal(msg)
+		j, _ := json.MarshalIndent(msg, "", "\t")
 		c.warn.Println(string(j))
 
 		if c.logglyClient != nil {
@@ -112,7 +113,7 @@ func (c *Client) Error(msg map[string]interface{}) {
 	if msg, err := getMessage(msg); err != nil {
 		log.Println(err.Error())
 	} else {
-		j, _ := json.Marshal(msg)
+		j, _ := json.MarshalIndent(msg, "", "\t")
 		c.error.Println(string(j))
 
 		if c.logglyClient != nil {
@@ -131,12 +132,17 @@ func (c *Client) Emergency(msg map[string]interface{}) {
 	if msg, err := getMessage(msg); err != nil {
 		log.Println(err.Error())
 	} else {
-		j, _ := json.Marshal(msg)
+		j, _ := json.MarshalIndent(msg, "", "\t")
 		c.emergency.Println(string(j))
 		if c.logglyClient != nil {
 			c.logglyClient.Emergency(c.component, msg)
 		}
 	}
+}
+
+func (c *Client) Fatal(msg map[string]interface{}) {
+	c.Emergency(msg)
+	log.Fatalln(msg)
 }
 
 func getMessage(msg map[string]interface{}) (map[string]interface{}, error) {
