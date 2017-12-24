@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/streamrail/go-loggly"
+	"github.com/skyline-ai/go-loggly"
 )
 
 type Client struct {
